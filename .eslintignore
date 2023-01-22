@@ -1,2 +1,5 @@
-npm node_modules
+# npm
+node_modules
 build
+*.mjs
+*.js
