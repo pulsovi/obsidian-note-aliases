@@ -1,24 +1,30 @@
 {
-	"name": "obsidian-sample-plugin",
-	"version": "1.0.1",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
-	"main": "main.js",
-	"scripts": {
-		"dev": "node esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json"
-	},
-	"keywords": [],
-	"author": "",
-	"license": "MIT",
-	"devDependencies": {
-		"@types/node": "^16.11.6",
-		"@typescript-eslint/eslint-plugin": "^5.2.0",
-		"@typescript-eslint/parser": "^5.2.0",
-		"builtin-modules": "^3.2.0",
-		"esbuild": "0.13.12",
-		"obsidian": "latest",
-		"tslib": "2.3.1",
-		"typescript": "4.4.4"
-	}
+  "name": "obsidian-sample-plugin",
+  "version": "1.0.0",
+  "description": "This plugin manage aliases of notes in Obsidian.",
+  "main": "main.js",
+  "scripts": {
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "dev": "node esbuild.config.mjs",
+    "start": "run-p watch dev",
+    "version": "node version-bump.mjs && git add manifest.json versions.json",
+    "watch": "node ./watch.js"
+  },
+  "keywords": [],
+  "author": "pulsovi",
+  "license": "GNU AGPLv3",
+  "devDependencies": {
+    "@types/node": "^16.11.6",
+    "@typescript-eslint/eslint-plugin": "^5.2.0",
+    "@typescript-eslint/parser": "^5.48.2",
+    "builtin-modules": "^3.2.0",
+    "esbuild": "0.13.12",
+    "eslint": "^8.32.0",
+    "eslint-config-pulsovi-typescript": "^0.4.0",
+    "npm-run-all": "^4.1.5",
+    "obsidian": "latest",
+    "tslib": "2.3.1",
+    "typescript": "^4.9.4"
+  },
+  "packageManager": "yarn@3.3.1"
 }
