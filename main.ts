@@ -25,23 +25,29 @@ export default class NoteAliases extends Plugin {
         const fromPath = view.file.path;
 
         (async (): Promise<void> => {
-          let targetFile = app.metadataCache.getFirstLinkpathDest(target, fromPath);
+          let targetFile = this.app.metadataCache.getFirstLinkpathDest(target, fromPath);
           if (!targetFile) {
             console.info('target file not exists', { checking, editor, view });
-            const targetPath = `${app.fileManager.getNewFileParent(fromPath).path}/${target}.md`;
-            targetFile = await app.vault.create(targetPath, '');
+            const targetPath = `${this.app.fileManager.getNewFileParent(fromPath).path}/${target}.md`;
+            targetFile = await this.app.vault.create(targetPath, '');
             console.info(targetFile);
           }
-          await app.fileManager.processFrontMatter(
-            targetFile,
-            (metadata: { aliases?: unknown }) => {
-              const aliases = parseFrontMatterAliases(metadata) ?? [];
-              const exists = aliases.some(item => item.toLowerCase() === alias.toLowerCase());
+          if (targetFile.extension !== 'md') return;
+          if (typeof this.app.fileManager.processFrontMatter === 'function') {
+            await this.app.fileManager.processFrontMatter(
+              targetFile,
+              (metadata: { aliases?: unknown }) => {
+                const aliases = parseFrontMatterAliases(metadata) ?? [];
+                const exists = aliases.some(item => item.toLowerCase() === alias.toLowerCase());
 
-              if (exists) return;
+                if (exists) return;
 
-              metadata.aliases = [...aliases, alias];
-            }
+                metadata.aliases = [...aliases, alias];
+              }
+            );
+            return;
+          }
+
           );
         })().catch(error => { console.error(error); });
         return true;
