@@ -1,6 +1,6 @@
 // https://marcus.se.net/obsidian-plugin-docs/reference/typescript
-import { Plugin, parseFrontMatterAliases } from 'obsidian';
-import type { Editor, MarkdownView } from 'obsidian';
+import { Plugin, parseFrontMatterAliases, parseYaml, stringifyYaml } from 'obsidian';
+import type { Editor, MarkdownView, TFile } from 'obsidian';
 
 import { isNeedleAtIndex } from './util';
 
@@ -21,39 +21,58 @@ export default class NoteAliases extends Plugin {
         if (!link) return false;
         if (checking) return true;
 
-        this.saveAlias(editor, view, link).catch(error => { console.info(error); });
+        this.saveAlias(view, link).catch(error => { console.info(error); });
         return true;
       },
     });
   }
 
-  private async saveAlias (editor: Editor, view: MarkdownView, link: string): Promise<void> {
-    const { alias, target } = linkRe.exec(link)?.groups ?? {};
+  private async getTargetFile (target: string, fromPath: string): Promise<TFile> {
+    const existFile = this.app.metadataCache.getFirstLinkpathDest(target, fromPath);
+    if (existFile) return existFile;
 
-    const fromPath = view.file.path;
-    let targetFile = this.app.metadataCache.getFirstLinkpathDest(target, fromPath);
+    const targetPath = `${this.app.fileManager.getNewFileParent(fromPath).path}/${target}.md`;
+    const targetFile = await this.app.vault.create(targetPath, '');
+    return targetFile;
+  }
 
-    if (!targetFile) {
-      console.info('target file not exists', { editor, link, view });
-      const targetPath = `${this.app.fileManager.getNewFileParent(fromPath).path}/${target}.md`;
-      targetFile = await this.app.vault.create(targetPath, '');
-      console.info(targetFile);
+  private async processFrontMatter (
+    file: TFile, fn: (frontmatter: object) => void
+  ): Promise<void> {
+    if (typeof this.app.fileManager.processFrontMatter === 'function') {
+      await this.app.fileManager.processFrontMatter(file, fn);
+      return;
     }
 
+    const frontMatterRe = /^---+\n(?<frontmatter>(?:.|\n)*)---+$/um;
+    const contentBefore = await this.app.vault.read(file);
+    const frontmatterStr = frontMatterRe.exec(contentBefore)?.[1];
+    const frontmatter = (frontmatterStr ? parseYaml(frontmatterStr) : {}) as object;
+
+    fn(frontmatter);
+
+    const processedFrontMatter = `---\n${stringifyYaml(frontmatter)}---`;
+    const contentAfter = frontmatterStr ?
+      contentBefore.replace(frontMatterRe, processedFrontMatter) :
+      `${processedFrontMatter}\n${contentBefore}`;
+
+    await this.app.vault.modify(file, contentAfter);
+  }
+
+  private async saveAlias (view: MarkdownView, link: string): Promise<void> {
+    const { alias, target } = linkRe.exec(link)?.groups ?? {};
+    const fromPath = view.file.path;
+
+    const targetFile = await this.getTargetFile(target, fromPath);
     if (targetFile.extension !== 'md') return;
 
-    if (typeof this.app.fileManager.processFrontMatter === 'function') {
-      await this.app.fileManager.processFrontMatter(
-        targetFile,
-        (metadata: { aliases?: unknown }) => {
-          const aliases = parseFrontMatterAliases(metadata) ?? [];
-          const exists = aliases.some(item => item.toLowerCase() === alias.toLowerCase());
+    await this.processFrontMatter(targetFile, (metadata: { aliases?: unknown }) => {
+      const aliases = parseFrontMatterAliases(metadata) ?? [];
+      const exists = aliases.some(item => item.toLowerCase() === alias.toLowerCase());
 
-          if (exists) return;
+      if (exists) return;
 
-          metadata.aliases = [...aliases, alias];
-        }
-      );
-    }
+      metadata.aliases = [...aliases, alias];
+    });
   }
 }
