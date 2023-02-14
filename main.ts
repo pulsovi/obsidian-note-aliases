@@ -6,7 +6,7 @@ import type { NoteAliasesSettings } from './src/Settings';
 import NoteAliasesSettingTab, { DEFAULT_SETTINGS } from './src/Settings';
 import { isNeedleAtIndex, log } from './src/util';
 
-const linkRe = /\[\[(?<target>[^[|]*)\|(?<alias>[^\]]*)\]\]/u;
+const linkRe = /\[\[(?<target>[^[|#]*)(?:#(?<anchor>[^[|]*))?\|(?<alias>[^\]]*)\]\]/u;
 
 export default class NoteAliases extends Plugin {
   public settings: NoteAliasesSettings = DEFAULT_SETTINGS;
