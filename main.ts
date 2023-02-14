@@ -2,12 +2,30 @@
 import { Plugin, parseFrontMatterAliases, parseYaml, stringifyYaml } from 'obsidian';
 import type { Editor, MarkdownView, TFile } from 'obsidian';
 
-import { isNeedleAtIndex } from './util';
+import type { NoteAliasesSettings } from './src/Settings';
+import NoteAliasesSettingTab, { DEFAULT_SETTINGS } from './src/Settings';
+import { isNeedleAtIndex, log } from './src/util';
 
 const linkRe = /\[\[(?<target>[^[|]*)\|(?<alias>[^\]]*)\]\]/u;
 
 export default class NoteAliases extends Plugin {
-  public onload (): void {
+  public settings: NoteAliasesSettings = DEFAULT_SETTINGS;
+
+  public async loadSettings (): Promise<void> {
+    this.settings = { ...DEFAULT_SETTINGS, ...(await this.loadData()) as NoteAliasesSettings };
+  }
+
+  public async onload (): Promise<void> {
+    this.addSettingTab(new NoteAliasesSettingTab(this.app, this));
+    await this.loadSettings();
+    this.addCommands();
+  }
+
+  public async saveSettings (): Promise<void> {
+    await this.saveData(this.settings);
+  }
+
+  private addCommands (): void {
     this.addCommand({
       id: 'save-alias',
       name: 'Save alias of the link under cursor in the target note frontmatter',
@@ -64,6 +82,7 @@ export default class NoteAliases extends Plugin {
     const fromPath = view.file.path;
 
     const targetFile = await this.getTargetFile(target, fromPath);
+    log('saveAlias', { link, linkParse: { alias, target }, sourceFile: fromPath, targetFile });
     if (targetFile.extension !== 'md') return;
 
     await this.processFrontMatter(targetFile, (metadata: { aliases?: unknown }) => {
