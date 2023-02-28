@@ -1,5 +1,5 @@
 // https://marcus.se.net/obsidian-plugin-docs/reference/typescript
-import { Plugin, parseFrontMatterAliases, parseYaml, stringifyYaml } from 'obsidian';
+import { Notice, Plugin, parseFrontMatterAliases, parseYaml, stringifyYaml } from 'obsidian';
 import type { Editor, MarkdownView, TFile } from 'obsidian';
 
 import type { NoteAliasesSettings } from './src/Settings';
@@ -9,6 +9,8 @@ import { isNeedleAtIndex, log } from './src/util';
 const linkRe = /\[\[(?<target>[^[|#]*)(?:#(?<anchor>[^[|]*))?\|(?<alias>[^\]]*)\]\]/u;
 
 export default class NoteAliases extends Plugin {
+  private notice: Notice | null = null;
+
   public settings: NoteAliasesSettings = DEFAULT_SETTINGS;
 
   public async loadSettings (): Promise<void> {
@@ -89,9 +91,18 @@ export default class NoteAliases extends Plugin {
       const aliases = parseFrontMatterAliases(metadata) ?? [];
       const exists = aliases.some(item => item.toLowerCase() === alias.toLowerCase());
 
-      if (exists) return;
+      if (exists) {
+        this.notify(`save-alias: "${alias}" already in aliases list of "${targetFile.basename}"`);
+        return;
+      }
 
       metadata.aliases = [...aliases, alias];
+      this.notify(`save-alias: "${alias}" saved in "${targetFile.basename}"`);
     });
+  }
+
+  private notify (message: string): void {
+    this.notice?.hide();
+    this.notice = new Notice(message);
   }
 }

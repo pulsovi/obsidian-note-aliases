@@ -1,3 +1,7 @@
+## 1.1.0
+
+- New Feature : show a Notice at end of `save-alias` command run
+
 ## 1.0.2
 
 - Bug Fix: link with anchor
