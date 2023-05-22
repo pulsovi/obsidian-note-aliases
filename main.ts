@@ -4,14 +4,13 @@ import type { Editor, MarkdownView, TFile } from 'obsidian';
 
 import type { NoteAliasesSettings } from './src/Settings';
 import NoteAliasesSettingTab, { DEFAULT_SETTINGS } from './src/Settings';
-import { isNeedleAtIndex, log } from './src/util';
-
-const linkRe = /\[\[(?<target>[^[|#]*)(?:#(?<anchor>[^[|]*))?\|(?<alias>[^\]]*)\]\]/u;
+import { getLinks, log } from './src/util';
+import type { Link } from './src/util';
 
 export default class NoteAliases extends Plugin {
-  private notice: Notice | null = null;
-
   public settings: NoteAliasesSettings = DEFAULT_SETTINGS;
+
+  private notice: Notice | null = null;
 
   public async loadSettings (): Promise<void> {
     this.settings = { ...DEFAULT_SETTINGS, ...(await this.loadData()) as NoteAliasesSettings };
@@ -35,13 +34,15 @@ export default class NoteAliases extends Plugin {
       editorCheckCallback: (checking: boolean, editor: Editor, view: MarkdownView) => {
         const position = editor.getCursor();
         const line = editor.getLine(position.line);
-        const links = line.match(new RegExp(linkRe, 'gu')) ?? [];
-        const link = links.find(match => isNeedleAtIndex(line, match, position.ch));
+        const links = getLinks(line);
+        const link = links.find(
+          linkItem => linkItem.start <= position.ch && linkItem.end >= position.ch
+        );
 
         if (!link) return false;
         if (checking) return true;
 
-        this.saveAlias(view, link).catch(error => { console.info(error); });
+        this.saveAlias(view, link).catch(error => { console.error(error); });
         return true;
       },
     });
@@ -79,17 +80,19 @@ export default class NoteAliases extends Plugin {
     await this.app.vault.modify(file, contentAfter);
   }
 
-  private async saveAlias (view: MarkdownView, link: string): Promise<void> {
-    const { alias, target } = linkRe.exec(link)?.groups ?? {};
-    const fromPath = view.file.path;
+  private async saveAlias (view: MarkdownView, link: Link): Promise<void> {
+    const { alias } = link;
+    if (!alias) return;
 
-    const targetFile = await this.getTargetFile(target, fromPath);
-    log('saveAlias', { link, linkParse: { alias, target }, sourceFile: fromPath, targetFile });
+    const fromPath = view.file.path;
+    const targetFile = await this.getTargetFile(link.target, fromPath);
+
+    log('saveAlias', { link, sourceFile: fromPath, targetFile });
     if (targetFile.extension !== 'md') return;
 
     await this.processFrontMatter(targetFile, (metadata: { aliases?: unknown }) => {
       const aliases = parseFrontMatterAliases(metadata) ?? [];
-      const exists = aliases.some(item => item.toLowerCase() === alias.toLowerCase());
+      const exists = aliases.some(item => item === alias);
 
       if (exists) {
         this.notify(`save-alias: "${alias}" already in aliases list of "${targetFile.basename}"`);

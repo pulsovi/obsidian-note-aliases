@@ -1,3 +1,7 @@
+## 1.2.0
+
+- New Feature : handle markdown links
+
 ## 1.1.0
 
 - New Feature : show a Notice at end of `save-alias` command run

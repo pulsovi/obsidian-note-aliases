@@ -1,7 +1,7 @@
 {
 	"id": "note-aliases",
 	"name": "Note aliases",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"minAppVersion": "0.12.0",
 	"description": "This plugin manage aliases of notes in Obsidian.",
 	"author": "Pulsovi",
