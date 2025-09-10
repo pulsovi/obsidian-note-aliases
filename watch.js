@@ -1,16 +1,30 @@
-const fs = require('fs');
+const fs = require('fs-extra');
 const path = require('path');
+const chokidar = require('chokidar');
 
-let timeoutId = null;
-const watcher = fs.watch('./main.js', { persistent: true }, (event, filename) => {
-  clearTimeout(timeoutId);
-  timeoutId = setTimeout(() => handleEvent(event, filename), 200);
-});
+const destDir = '.\\TestVault\\.obsidian\\plugins\\obsidian-note-aliases';
 
-function handleEvent (event, filename) {
-  console.log(event, filename);
-  const src = path.resolve('./main.js');
-  const dest = `${process.argv[2]}/main.js`;
-  console.log('copy file', src, 'to', dest);
-  fs.copyFile(src, dest, (err) => {console.log(err)});
+function main () {
+  return new Promise((resolve, reject) => {
+    const watcher = chokidar.watch([
+      './main.js',
+      './manifest.json',
+      './styles.css',
+    ]);
+
+    watcher
+      .on('ready', () => {
+        console.log('ready');
+      })
+      .on('change', filename => {
+        console.log(filename);
+        fs.copyFile(path.resolve('.', filename), path.join(destDir, filename));
+      })
+      .on('error', (error) => {
+        watcher.close();
+        reject(error);
+      });
+  });
 }
+
+main().then(() => console.log('END'), err => console.log(err));

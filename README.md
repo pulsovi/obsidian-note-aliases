@@ -1,6 +1,6 @@
 # Note aliases
 
-This plugin allows fine management of note aliases in Obsidian.
+Allow fine management of note aliases in Obsidian.
 
 Several features are planned. Only one is available at the moment, but it is essential.
 
